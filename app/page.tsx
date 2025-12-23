@@ -28,7 +28,7 @@ const Home = async () => {
             </h1>
 
             <p className="paragraph-text">
-              Powerful, self-serve product and growth analytics to help you
+              Intense, self-serve product and growth analytics to help you
               convert, engage, and retain more.
             </p>
 
