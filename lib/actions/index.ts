@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import Product from "../models/product.model";
 import { connectToDB } from "../mongoose";
-import { scrapeAmazonProduct } from "../scraper";
+import { scrapeProduct } from "../scraper";
 import { getAveragePrice, getHighestPrice, getLowestPrice } from "../utility";
 import { User } from "@/types";
 import { generateEmailBody, sendEmail } from "../nodemailer";
@@ -14,7 +14,7 @@ export async function scrapeAndStoreProduct(productUrl: string) {
   try {
     connectToDB();
 
-    const scrapedProduct = await scrapeAmazonProduct(productUrl);
+    const scrapedProduct = await scrapeProduct(productUrl);
 
     if(!scrapedProduct) return;
 
@@ -44,6 +44,8 @@ export async function scrapeAndStoreProduct(productUrl: string) {
     );
 
     revalidatePath(`/products/${newProduct._id}`);
+
+    return { productId: newProduct._id.toString() };
   } catch (error: any) {
     throw new Error(`Failed to create/update product: ${error.message}`)
   }
@@ -63,11 +65,35 @@ export async function getProductById(productId: string) {
   }
 }
 
-export async function getAllProducts() {
+export async function getAllProducts(searchQuery?: string) {
   try {
     connectToDB();
 
-    const products = await Product.find();
+    const trimmed = searchQuery?.trim();
+    const filter = trimmed
+      ? { title: { $regex: trimmed.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" } }
+      : {};
+
+    const products = await Product.find(filter);
+
+    return products;
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+export async function getProductsByCategory(category: string) {
+  try {
+    connectToDB();
+
+    const trimmed = category?.trim();
+    if (!trimmed) return [];
+
+    const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    const products = await Product.find({
+      category: { $regex: escaped, $options: "i" },
+    });
 
     return products;
   } catch (error) {

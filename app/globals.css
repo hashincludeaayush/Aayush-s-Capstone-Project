@@ -211,7 +211,7 @@
       @apply max-w-[2520px] mx-auto xl:px-20 md:px-10 sm:px-2 px-4
     }
     .categories{
-      @apply pt-4 flex flex-row  items-center justify-between overflow-x-auto
+      @apply pt-4 flex flex-row items-center justify-start gap-2 overflow-x-auto whitespace-nowrap
     }
     .category-box{
       @apply flex flex-col items-center justify-center gap-2 p-3 border-b-2 hover:text-neutral-800 transition cursor-pointer

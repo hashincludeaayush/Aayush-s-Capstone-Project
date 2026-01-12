@@ -6,6 +6,8 @@ import type { Metadata } from "next";
 import { Inter, Space_Grotesk, Nunito } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Suspense } from "react";
+import ClientOnlyN8nChat from "@/components/ClientOnlyN8nChat";
+import { ToastProvider } from "@/components/ui/toast";
 
 const inter = Inter({ subsets: ["latin"] });
 const nunito = Inter({ subsets: ["latin"] });
@@ -33,10 +35,13 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <main className="">
-            <Navbar />
-            <Suspense>{children}</Suspense>
-          </main>
+          <ToastProvider>
+            <main className="">
+              <Navbar />
+              <Suspense>{children}</Suspense>
+              <ClientOnlyN8nChat />
+            </main>
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

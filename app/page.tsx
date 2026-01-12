@@ -4,8 +4,8 @@ import Image from "next/image";
 import { getAllProducts } from "@/lib/actions";
 import ProductCard from "@/components/ProductCard";
 
-const Home = async () => {
-  const allProducts = await getAllProducts();
+const Home = async ({ searchParams }: { searchParams?: { q?: string } }) => {
+  const allProducts = await getAllProducts(searchParams?.q);
 
   return (
     <>
@@ -28,7 +28,7 @@ const Home = async () => {
             </h1>
 
             <p className="paragraph-text">
-              Intense, self-serve product and growth analytics to help you
+              Powerful, self-serve product and growth analytics to help you
               convert, engage, and retain more.
             </p>
 

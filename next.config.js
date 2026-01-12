@@ -1,11 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ['mongoose']
+    serverComponentsExternalPackages: ["mongoose"],
   },
   images: {
-    domains: ['m.media-amazon.com']
-  }
-}
+    domains: ["m.media-amazon.com", "shared.fastly.steamstatic.com"],
+  },
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;

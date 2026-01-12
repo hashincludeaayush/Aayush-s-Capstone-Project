@@ -7,6 +7,7 @@ import { Product } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AnalyzePricesButton } from "@/components/AnalyzePrices";
 
 type Props = {
   params: { id: string };
@@ -160,6 +161,7 @@ const ProductDetails = async ({ params: { id } }: Props) => {
           </div>
 
           <Modal productId={id} />
+          <AnalyzePricesButton productName={product.title} />
         </div>
       </div>
 
