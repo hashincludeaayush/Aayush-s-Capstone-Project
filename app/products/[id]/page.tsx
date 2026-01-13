@@ -8,9 +8,35 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AnalyzePricesButton } from "@/components/AnalyzePrices";
+import { Button } from "@/components/ui/button";
+import { ShoppingBag } from "lucide-react";
 
 type Props = {
   params: { id: string };
+};
+
+const getMerchantNameFromUrl = (url: string) => {
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.replace(/^www\./, "").toLowerCase();
+
+    const parts = hostname.split(".").filter(Boolean);
+    const sld = parts.length >= 2 ? parts[parts.length - 2] : parts[0] ?? "";
+
+    const overrides: Record<string, string> = {
+      amazon: "Amazon",
+      amzn: "Amazon",
+      steampowered: "Steam",
+    };
+
+    const base = overrides[sld];
+    if (base) return base;
+    if (!sld) return "Store";
+
+    return sld.charAt(0).toUpperCase() + sld.slice(1);
+  } catch {
+    return "Store";
+  }
 };
 
 const ProductDetails = async ({ params: { id } }: Props) => {
@@ -168,8 +194,31 @@ const ProductDetails = async ({ params: { id } }: Props) => {
             </div>
           </div>
 
-          <Modal productId={id} />
-          <AnalyzePricesButton productName={product.title} />
+          <div className="mt-6 flex flex-col gap-5">
+            <div className="w-full">
+              <div className="rounded-xl bg-gradient-to-r from-primary-orange/55 via-chart-1/55 to-primary-green/55 p-[1px] shadow-xs">
+                <Button
+                  asChild
+                  className="h-11 w-full rounded-xl bg-neutral-black/70 text-white-100 border border-white-100/10 backdrop-blur-md px-5 font-semibold hover:bg-neutral-black/60 focus-visible:ring-2 focus-visible:ring-white-100/30"
+                >
+                  <Link
+                    href={product.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center"
+                  >
+                    <ShoppingBag className="mr-2 h-4 w-4" />
+                    <span className="flex-1 text-left">
+                      Buy now on {getMerchantNameFromUrl(product.url)}
+                    </span>
+                  </Link>
+                </Button>
+              </div>
+            </div>
+
+            <Modal productId={id} />
+            <AnalyzePricesButton productName={product.title} />
+          </div>
         </div>
       </div>
 
@@ -238,19 +287,6 @@ const ProductDetails = async ({ params: { id } }: Props) => {
             })()}
           </div>
         </div>
-
-        <button className="btn w-fit mx-auto flex items-center justify-center gap-3 min-w-[200px]">
-          <Image
-            src="/assets/icons/bag.svg"
-            alt="check"
-            width={22}
-            height={22}
-          />
-
-          <Link href="/" className="text-base text-black-100">
-            Buy Now
-          </Link>
-        </button>
       </div>
 
       {similarProducts && similarProducts?.length > 0 && (

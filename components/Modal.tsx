@@ -4,6 +4,9 @@ import { FormEvent, Fragment, useState } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import Image from "next/image";
 import { addUserEmailToProduct } from "@/lib/actions";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { BellPlus } from "lucide-react";
 
 interface Props {
   productId: string;
@@ -31,9 +34,23 @@ const Modal = ({ productId }: Props) => {
 
   return (
     <>
-      <button type="button" className="btn" onClick={openModal}>
-        Track
-      </button>
+      <div className="w-full">
+        <div className="rounded-xl bg-gradient-to-r from-primary-orange/55 via-chart-1/55 to-primary-green/55 p-[1px] shadow-xs">
+          <Button
+            type="button"
+            onClick={openModal}
+            className={cn(
+              "h-11 w-full rounded-xl bg-neutral-black/70 text-white-100 border border-white-100/10",
+              "backdrop-blur-md px-5 font-semibold",
+              "hover:bg-neutral-black/60",
+              "focus-visible:ring-2 focus-visible:ring-white-100/30"
+            )}
+          >
+            <BellPlus className="mr-2 h-4 w-4" />
+            <span className="flex-1 text-left">Track</span>
+          </Button>
+        </div>
+      </div>
 
       <Transition appear show={isSubmitting} as={Fragment}>
         <Dialog as="div" onClose={closeModal} className="dialog-container">

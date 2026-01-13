@@ -9,11 +9,12 @@ export const N8nChat = () => {
   const isInitialized = useRef(false);
 
   useEffect(() => {
-    // Clear any existing chat sessions from localStorage
-    const chatStorageKeys = Object.keys(localStorage).filter(
-      (key) => key.includes("n8n") || key.includes("chat")
-    );
-    chatStorageKeys.forEach((key) => localStorage.removeItem(key));
+    // Reset only the n8n chat session (avoid clearing unrelated app keys)
+    try {
+      localStorage.removeItem("n8n-chat/sessionId");
+    } catch {
+      // Ignore storage access errors (e.g. blocked in some contexts)
+    }
 
     // Only run if not already initialized
     if (!isInitialized.current) {
@@ -22,7 +23,8 @@ export const N8nChat = () => {
           "https://workflows.shoto.cloud/webhook/53f3c259-1b88-4571-9220-e0b8027b7a7f/chat", // <--- PASTE YOUR URL HERE
         mode: "window", // 'window' creates the floating bubble automatically
         target: "#n8n-chat", // We will render this div below
-        showWelcomeScreen: true,
+        loadPreviousSession: false,
+        showWelcomeScreen: false,
         initialMessages: [
           "Hi there! 👋",
           "I am your AI Price Detective. How can I help you save money today?",
@@ -31,7 +33,7 @@ export const N8nChat = () => {
           en: {
             title: "Price Detective",
             subtitle: "AI Price History & Comparison",
-            footer: "Powered by n8n",
+            footer: "",
             getStarted: "New Conversation",
             inputPlaceholder: "Type your message...",
             closeButtonTooltip: "",
@@ -41,31 +43,6 @@ export const N8nChat = () => {
 
       // Mark as initialized so it doesn't run again
       isInitialized.current = true;
-
-      // Style user messages to black color
-      const style = document.createElement("style");
-      style.textContent = `
-        /* Target all user message text */
-        [class*="chat"] [class*="user"] {
-          color: black !important;
-        }
-        /* Target input and text areas */
-        [class*="chat"] input,
-        [class*="chat"] textarea {
-          color: black !important;
-        }
-        /* Target message containers */
-        .n8n-chat-message-user,
-        .user-message,
-        [class*="message-user"] {
-          color: black !important;
-        }
-        /* Override any inline styles */
-        * {
-          --chat-user-text-color: black !important;
-        }
-      `;
-      document.head.appendChild(style);
     }
   }, []);
 

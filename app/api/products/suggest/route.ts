@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import Product from "@/lib/models/product.model";
 import { connectToDB } from "@/lib/mongoose";
 
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -13,11 +15,26 @@ export async function GET(request: Request) {
 
     await connectToDB();
 
-    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const tokens = q
+      .split(/\s+/)
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .slice(0, 6);
 
-    const products = await Product.find({
-      title: { $regex: escaped, $options: "i" },
-    })
+    const tokenClauses = tokens.map((token) => {
+      const escaped = escapeRegex(token);
+      return {
+        $or: [
+          { title: { $regex: escaped, $options: "i" } },
+          { description: { $regex: escaped, $options: "i" } },
+          { category: { $regex: escaped, $options: "i" } },
+        ],
+      };
+    });
+
+    const filter = tokenClauses.length > 0 ? { $and: tokenClauses } : {};
+
+    const products = await Product.find(filter)
       .sort({ updatedAt: -1 })
       .limit(8)
       .select({ _id: 1, title: 1, image: 1, currentPrice: 1, currency: 1 });
