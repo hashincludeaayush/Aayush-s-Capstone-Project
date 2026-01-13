@@ -1,5 +1,6 @@
 import ProductCard from "@/components/ProductCard";
 import { getProductsByCategory } from "@/lib/actions";
+import type { Product } from "@/types";
 
 type Props = {
   params: { category: string };
@@ -14,7 +15,7 @@ const CategoryPage = async ({ params }: Props) => {
     }
   })();
 
-  const products = await getProductsByCategory(categoryLabel);
+  const products = (await getProductsByCategory(categoryLabel)) as Product[];
 
   return (
     <section className="trending-section">

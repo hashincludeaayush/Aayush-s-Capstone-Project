@@ -2,10 +2,10 @@ import HeroCarousel from "@/components/HeroCarousel";
 import Searchbar from "@/components/Searchbar";
 import Image from "next/image";
 import { getAllProducts } from "@/lib/actions";
-import ProductCard from "@/components/ProductCard";
+import HomeCategorySections from "@/components/HomeCategorySections";
 
-const Home = async ({ searchParams }: { searchParams?: { q?: string } }) => {
-  const allProducts = await getAllProducts(searchParams?.q);
+const Home = async () => {
+  const allProducts = await getAllProducts();
 
   return (
     <>
@@ -42,19 +42,19 @@ const Home = async ({ searchParams }: { searchParams?: { q?: string } }) => {
       </section>
 
       <section className="trending-section">
-        <h2 className="section-text">Trending</h2>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <h2 className="section-text">Trending</h2>
 
-        <div className="flex flex-wrap gap-x-8 gap-y-16">
+          {/* Keep this button unchanged */}
           <a
             className="trending-button"
             href="https://app.fabric.microsoft.com/view?r=eyJrIjoiYzJiNGQyZjEtZDc3OS00Mzk1LWJkNDEtMTM0OTI3NzE0YzJkIiwidCI6IjA1OWZlODZkLTQ1YzItNGI1MS1hM2U4LTZhYmMyZTJiNjQzZCJ9&embedImagePlaceholder=true&pageName=70baf36534e22005d331"
           >
             All
           </a>
-          {allProducts?.map((product) => (
-            <ProductCard key={product._id} product={product} />
-          ))}
         </div>
+
+        <HomeCategorySections products={(allProducts as any) ?? []} />
       </section>
     </>
   );

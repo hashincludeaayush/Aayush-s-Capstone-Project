@@ -4,7 +4,18 @@ const nextConfig = {
     serverComponentsExternalPackages: ["mongoose"],
   },
   images: {
-    domains: ["m.media-amazon.com", "shared.fastly.steamstatic.com"],
+    // Allow images from any domain (useful when users paste product links from many sites).
+    // NOTE: This relaxes security restrictions for remote images.
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**",
+      },
+      {
+        protocol: "http",
+        hostname: "**",
+      },
+    ],
   },
 };
 

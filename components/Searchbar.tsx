@@ -28,25 +28,24 @@ const WAIT_VIDEOS = [
   },
 ] satisfies ReadonlyArray<{ title: string; src: string }>;
 
-const isValidAmazonProductURL = (url: string) => {
-  try {
-    const parsedURL = new URL(url);
-    const hostname = parsedURL.hostname;
+const isValidProductURL = (value: string) => {
+  const url = value.trim();
+  if (!url) return false;
 
-    if (
-      hostname.includes("amazon.com") ||
-      hostname.includes("amazon.") ||
-      hostname.endsWith("amazon") ||
-      hostname.includes("amzn.in") ||
-      hostname.includes("steampowered.com")
-    ) {
-      return true;
-    }
-  } catch (error) {
+  try {
+    const parsed = new URL(url);
+
+    // Only allow web URLs.
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:")
+      return false;
+
+    // Basic hostname sanity.
+    if (!parsed.hostname) return false;
+
+    return true;
+  } catch {
     return false;
   }
-
-  return false;
 };
 
 const Searchbar = () => {
@@ -309,9 +308,9 @@ const Searchbar = () => {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const isValidLink = isValidAmazonProductURL(searchPrompt);
+    const isValidLink = isValidProductURL(searchPrompt);
 
-    if (!isValidLink) return alert("Please provide a valid link");
+    if (!isValidLink) return alert("Please provide a valid product URL");
 
     try {
       setIsLoading(true);
@@ -319,24 +318,44 @@ const Searchbar = () => {
       // Scrape the product page
       const result = await scrapeAndStoreProduct(searchPrompt);
 
-      if (!result?.productId) {
-        throw new Error("Scrape finished but no product id was returned.");
+      if (result?.status === "complete" && result?.productId) {
+        toast({
+          variant: "success",
+          title: "Scrape complete",
+          description: "Opening the product page…",
+        });
+
+        router.push(`/products/${result.productId}`);
+        return;
       }
 
-      toast({
-        variant: "success",
-        title: "Scrape complete",
-        description: "Opening the product page…",
-      });
+      if (result?.status === "queued") {
+        toast({
+          variant: "success",
+          title: "Scrape started",
+          description:
+            result.message ||
+            "The workflow ran successfully. The product may appear in a moment.",
+        });
+        return;
+      }
 
-      router.push(`/products/${result.productId}`);
+      const message =
+        (result as any)?.message ||
+        "Couldn’t reach the workflow. Please try again.";
+      throw new Error(message);
     } catch (error) {
       console.log(error);
+
+      const description =
+        error instanceof Error && error.message
+          ? error.message
+          : "Couldn’t reach the workflow. Please try again.";
 
       toast({
         variant: "error",
         title: "Scrape failed",
-        description: "Couldn’t reach the workflow. Please try again.",
+        description,
       });
     } finally {
       setIsLoading(false);

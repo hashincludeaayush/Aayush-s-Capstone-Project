@@ -8,15 +8,76 @@ import { getAveragePrice, getHighestPrice, getLowestPrice } from "../utility";
 import { User } from "@/types";
 import { generateEmailBody, sendEmail } from "../nodemailer";
 
+type ScrapeAndStoreResult =
+  | { status: "complete"; productId: string }
+  | { status: "queued"; message: string }
+  | { status: "failed"; message: string };
+
 export async function scrapeAndStoreProduct(productUrl: string) {
   if(!productUrl) return;
 
   try {
     connectToDB();
 
-    const scrapedProduct = await scrapeProduct(productUrl);
+    const sleep = (ms: number) =>
+      new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-    if(!scrapedProduct) return;
+    const webhook = await scrapeProduct(productUrl);
+
+    if (!webhook.ok) {
+      return { status: "failed", message: webhook.error } satisfies ScrapeAndStoreResult;
+    }
+
+    const scrapedProduct = webhook.data;
+
+    // If n8n returned product data, we can store/update immediately (old behavior).
+    const hasScrapedPayload =
+      scrapedProduct &&
+      typeof scrapedProduct === "object" &&
+      typeof (scrapedProduct as any).url === "string";
+
+    if(!hasScrapedPayload) {
+      // If n8n responds with no body (e.g. 204), we still treat it as success.
+      // Many workflows upsert into MongoDB themselves, so we poll briefly for the product.
+      const candidates = new Set<string>();
+      const trimmed = productUrl.trim();
+      if (trimmed) candidates.add(trimmed);
+
+      try {
+        const u = new URL(trimmed);
+        u.hash = "";
+        candidates.add(u.toString());
+        u.search = "";
+        candidates.add(u.toString());
+        candidates.add(u.toString().replace(/\/$/, ""));
+      } catch {
+        // ignore invalid URL parsing here; Searchbar validates on client.
+      }
+
+      const urlList = Array.from(candidates).filter(Boolean);
+
+      for (let attempt = 0; attempt < 12; attempt += 1) {
+        const existing = await Product.findOne({ url: { $in: urlList } })
+          .select("_id")
+          .lean<{ _id?: any } | null>();
+
+        if (existing?._id) {
+          revalidatePath(`/products/${existing._id}`);
+          return {
+            status: "complete",
+            productId: existing._id.toString(),
+          } satisfies ScrapeAndStoreResult;
+        }
+
+        await sleep(1000);
+      }
+
+      return {
+        status: "queued",
+        message:
+          "Workflow finished, but no product payload was returned. The product may still be saving—please refresh in a moment.",
+      } satisfies ScrapeAndStoreResult;
+    }
 
     let product = scrapedProduct;
 
@@ -45,9 +106,15 @@ export async function scrapeAndStoreProduct(productUrl: string) {
 
     revalidatePath(`/products/${newProduct._id}`);
 
-    return { productId: newProduct._id.toString() };
+    return {
+      status: "complete",
+      productId: newProduct._id.toString(),
+    } satisfies ScrapeAndStoreResult;
   } catch (error: any) {
-    throw new Error(`Failed to create/update product: ${error.message}`)
+    return {
+      status: "failed",
+      message: `Failed to create/update product: ${error.message}`,
+    } satisfies ScrapeAndStoreResult;
   }
 }
 
@@ -55,11 +122,11 @@ export async function getProductById(productId: string) {
   try {
     connectToDB();
 
-    const product = await Product.findOne({ _id: productId });
+    const product = await Product.findOne({ _id: productId }).lean();
 
     if(!product) return null;
 
-    return product;
+    return JSON.parse(JSON.stringify(product));
   } catch (error) {
     console.log(error);
   }
@@ -69,14 +136,35 @@ export async function getAllProducts(searchQuery?: string) {
   try {
     connectToDB();
 
+    const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
     const trimmed = searchQuery?.trim();
-    const filter = trimmed
-      ? { title: { $regex: trimmed.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" } }
-      : {};
 
-    const products = await Product.find(filter);
+    const filter = (() => {
+      if (!trimmed) return {};
 
-    return products;
+      const tokens = trimmed
+        .split(/[\s,]+/g)
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .slice(0, 6);
+
+      if (tokens.length === 0) return {};
+
+      return {
+        $and: tokens.map((token) => {
+          const safe = escapeRegex(token);
+          const rx = { $regex: safe, $options: "i" };
+          return {
+            $or: [{ title: rx }, { description: rx }, { category: rx }],
+          };
+        }),
+      };
+    })();
+
+    const products = await Product.find(filter).lean();
+
+    return JSON.parse(JSON.stringify(products));
   } catch (error) {
     console.log(error);
   }
@@ -93,9 +181,9 @@ export async function getProductsByCategory(category: string) {
 
     const products = await Product.find({
       category: { $regex: escaped, $options: "i" },
-    });
+    }).lean();
 
-    return products;
+    return JSON.parse(JSON.stringify(products));
   } catch (error) {
     console.log(error);
   }
@@ -105,15 +193,15 @@ export async function getSimilarProducts(productId: string) {
   try {
     connectToDB();
 
-    const currentProduct = await Product.findById(productId);
+    const currentProduct = await Product.findById(productId).lean();
 
     if(!currentProduct) return null;
 
     const similarProducts = await Product.find({
       _id: { $ne: productId },
-    }).limit(3);
+    }).limit(3).lean();
 
-    return similarProducts;
+    return JSON.parse(JSON.stringify(similarProducts));
   } catch (error) {
     console.log(error);
   }

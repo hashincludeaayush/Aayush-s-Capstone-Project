@@ -86,7 +86,7 @@ const ProductSearchbar = () => {
       return;
     }
 
-    router.push("/?q=" + encodeURIComponent(nextQuery));
+    router.push("/search?q=" + encodeURIComponent(nextQuery));
   };
 
   const openSuggestions = () => {

@@ -52,7 +52,9 @@ const ProductDetails = async ({ params: { id } }: Props) => {
 
   const similarProductsPromise = getSimilarProducts(id);
   await minDelayPromise;
-  const similarProducts = await similarProductsPromise;
+  const similarProducts = (((await similarProductsPromise) as
+    | Product[]
+    | null) ?? []) satisfies Product[];
 
   return (
     <div className="product-container">

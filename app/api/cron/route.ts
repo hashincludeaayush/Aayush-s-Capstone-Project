@@ -22,9 +22,18 @@ export async function GET(request: Request) {
     const updatedProducts = await Promise.all(
       products.map(async (currentProduct) => {
         // Scrape product
-        const scrapedProduct = await scrapeProduct(currentProduct.url);
+        const webhook = await scrapeProduct(currentProduct.url);
+        if (!webhook.ok) return;
 
-        if (!scrapedProduct) return;
+        const scrapedProduct = webhook.data;
+        const hasPayload =
+          scrapedProduct &&
+          typeof scrapedProduct === "object" &&
+          typeof scrapedProduct.url === "string" &&
+          typeof scrapedProduct.currentPrice === "number";
+
+        // If the workflow responds with no body (e.g. 204), there's nothing to update.
+        if (!hasPayload) return;
 
         const updatedPriceHistory = [
           ...currentProduct.priceHistory,
