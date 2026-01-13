@@ -1,17 +1,17 @@
-import { Product } from '@/types';
-import Image from 'next/image';
-import Link from 'next/link';
-import React from 'react'
+import { Product } from "@/types";
+import Image from "next/image";
+import Link from "next/link";
+import React from "react";
 
 interface Props {
   product: Product;
 }
- 
+
 const ProductCard = ({ product }: Props) => {
   return (
     <Link href={`/products/${product._id}`} className="product-card">
       <div className="product-card_img-container">
-        <Image 
+        <Image
           src={product.image}
           alt={product.title}
           width={200}
@@ -23,19 +23,19 @@ const ProductCard = ({ product }: Props) => {
       <div className="flex flex-col gap-3">
         <h3 className="product-title">{product.title}</h3>
 
-        <div className="flex justify-between">
-          <p className="text-white-100 opacity-50 text-lg capitalize">
+        <div className="flex items-center justify-between gap-3">
+          <p className="min-w-0 truncate text-white-100 opacity-50 text-base sm:text-lg capitalize">
             {product.category}
           </p>
 
-          <p className="text-white-100 text-lg font-semibold">
-            <span>{product?.currency}</span>
+          <p className="shrink-0 text-white-100 text-base sm:text-lg font-semibold">
+            <span>{product?.currency} </span>
             <span>{product?.currentPrice}</span>
           </p>
         </div>
       </div>
     </Link>
-  )
-}
+  );
+};
 
-export default ProductCard
+export default ProductCard;

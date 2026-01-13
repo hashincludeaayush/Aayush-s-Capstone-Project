@@ -9,8 +9,8 @@ const Home = async ({ searchParams }: { searchParams?: { q?: string } }) => {
 
   return (
     <>
-      <section className="px-6 md:px-20 py-24">
-        <div className="flex max-xl:flex-col gap-16">
+      <section className="px-4 sm:px-6 md:px-20 py-12 sm:py-24">
+        <div className="flex max-xl:flex-col gap-8 sm:gap-16">
           <div className="flex flex-col justify-center">
             <p className="small-text">
               Smart Shoppings Starts Here:
@@ -35,7 +35,9 @@ const Home = async ({ searchParams }: { searchParams?: { q?: string } }) => {
             <Searchbar />
           </div>
 
-          <HeroCarousel />
+          <div className="max-xl:mx-auto w-full">
+            <HeroCarousel />
+          </div>
         </div>
       </section>
 

@@ -27,8 +27,8 @@ const CategoryBox: React.FC<CategoryBoxProps> = ({
       onClick={handleClick}
       className={`category-box border-b-2 ${
         selected
-          ? "border-b-neutral-800 text-neutral-800"
-          : "border-transparent text-neutral-500"
+          ? "border-white-100 text-white-100"
+          : "border-transparent text-white-200/70 hover:text-white-100"
       }`}
     >
       <Icon size={26} />

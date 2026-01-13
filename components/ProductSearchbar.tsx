@@ -107,7 +107,10 @@ const ProductSearchbar = () => {
   };
 
   return (
-    <form className="flex flex-wrap gap-4" onSubmit={handleSubmit}>
+    <form
+      className="flex flex-col sm:flex-row sm:flex-wrap items-stretch gap-3 sm:gap-4"
+      onSubmit={handleSubmit}
+    >
       <div className="relative w-full sm:w-auto flex-1 min-w-[240px]">
         <input
           type="text"

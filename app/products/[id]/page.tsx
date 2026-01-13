@@ -22,21 +22,21 @@ const ProductDetails = async ({ params: { id } }: Props) => {
 
   return (
     <div className="product-container">
-      <div className="flex gap-28 xl:flex-row flex-col">
+      <div className="flex gap-10 sm:gap-16 xl:gap-28 xl:flex-row flex-col">
         <div className="product-image">
           <Image
             src={product.image}
             alt={product.title}
             width={580}
             height={400}
-            className="mx-auto"
+            className="mx-auto max-w-full h-auto"
           />
         </div>
 
         <div className="flex-1 flex flex-col">
           <div className="flex justify-between items-start gap-5 flex-wrap pb-6">
             <div className="flex flex-col gap-3">
-              <p className="text-[28px] text-secondary font-semibold text-white-100">
+              <p className="text-xl sm:text-[28px] text-secondary font-semibold text-white-100">
                 {product.title}
               </p>
 
@@ -85,10 +85,10 @@ const ProductDetails = async ({ params: { id } }: Props) => {
 
           <div className="product-info">
             <div className="flex flex-col gap-2">
-              <p className="text-[34px] text-secondary font-bold text-white-100">
+              <p className="text-2xl sm:text-[34px] text-secondary font-bold text-white-100">
                 {product.currency} {formatNumber(product.currentPrice)}
               </p>
-              <p className="text-[21px] text-white-100 opacity-50 line-through">
+              <p className="text-base sm:text-[21px] text-white-100 opacity-50 line-through">
                 {product.currency} {formatNumber(product.originalPrice)}
               </p>
             </div>

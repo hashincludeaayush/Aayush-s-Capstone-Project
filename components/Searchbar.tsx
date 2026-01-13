@@ -52,6 +52,7 @@ const isValidAmazonProductURL = (url: string) => {
 const Searchbar = () => {
   const [searchPrompt, setSearchPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSmallScreen, setIsSmallScreen] = useState(false);
   const [loadingQuote, setLoadingQuote] = useState<{
     text: string;
     tone: "gaming" | "ecommerce" | "digital" | "marketplace" | "general";
@@ -176,6 +177,21 @@ const Searchbar = () => {
   }, [isLoading, quoteGenerator]);
 
   useEffect(() => {
+    // Keep UI simple on very small screens (avoid 3D offscreen cards).
+    const media = window.matchMedia("(max-width: 639px)");
+    const onChange = () => setIsSmallScreen(media.matches);
+    onChange();
+
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", onChange);
+      return () => media.removeEventListener("change", onChange);
+    }
+
+    media.addListener(onChange);
+    return () => media.removeListener(onChange);
+  }, []);
+
+  useEffect(() => {
     // When switching cards, pause non-active videos so audio doesn't stack.
     videoRefs.current.forEach((v, idx) => {
       if (!v) return;
@@ -215,6 +231,26 @@ const Searchbar = () => {
       transformStyle: "preserve-3d",
       transition: "transform 450ms ease, opacity 450ms ease",
     };
+
+    if (isSmallScreen) {
+      if (offset === 0) {
+        return {
+          ...base,
+          zIndex: 3,
+          opacity: 1,
+          transform: "translate(-50%, -50%) scale(1)",
+          pointerEvents: "auto",
+        };
+      }
+
+      return {
+        ...base,
+        zIndex: 1,
+        opacity: 0,
+        transform: "translate(-50%, -50%) scale(0.96)",
+        pointerEvents: "none",
+      };
+    }
 
     if (offset === 0) {
       return {
@@ -308,8 +344,11 @@ const Searchbar = () => {
   };
 
   return (
-    <div className="mt-150">
-      <form className="flex flex-wrap gap-4" onSubmit={handleSubmit}>
+    <div className="mt-10 sm:mt-150">
+      <form
+        className="flex flex-col sm:flex-row sm:flex-wrap items-stretch gap-3 sm:gap-4"
+        onSubmit={handleSubmit}
+      >
         <input
           type="text"
           value={searchPrompt}
@@ -380,7 +419,7 @@ const Searchbar = () => {
 
             <div className="mt-3">
               <div
-                className="relative w-full h-[360px] sm:h-[460px] overflow-visible rounded-lg"
+                className="relative w-full h-[320px] sm:h-[460px] overflow-hidden sm:overflow-visible rounded-lg"
                 style={{ perspective: "1400px" }}
               >
                 {WAIT_VIDEOS.map((video, idx) => {
