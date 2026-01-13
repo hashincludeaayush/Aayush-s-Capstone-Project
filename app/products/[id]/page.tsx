@@ -14,11 +14,19 @@ type Props = {
 };
 
 const ProductDetails = async ({ params: { id } }: Props) => {
+  const MIN_LOADING_MS = 3200;
+  const sleep = (ms: number) =>
+    new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+  const minDelayPromise = sleep(MIN_LOADING_MS);
+
   const product: Product = await getProductById(id);
 
   if (!product) redirect("/");
 
-  const similarProducts = await getSimilarProducts(id);
+  const similarProductsPromise = getSimilarProducts(id);
+  await minDelayPromise;
+  const similarProducts = await similarProductsPromise;
 
   return (
     <div className="product-container">
