@@ -26,7 +26,7 @@ const WAIT_VIDEOS = [
     title: "Cosmos",
     src: "/assets/videos/video-3.mp4",
   },
-] as const;
+] satisfies ReadonlyArray<{ title: string; src: string }>;
 
 const isValidAmazonProductURL = (url: string) => {
   try {
