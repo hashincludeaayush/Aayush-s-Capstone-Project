@@ -50,6 +50,11 @@ const ProductDetails = async ({ params: { id } }: Props) => {
 
   if (!product) redirect("/");
 
+  const imageSrc =
+    typeof product.image === "string" && product.image.trim().length > 0
+      ? product.image
+      : "/assets/images/trending.svg";
+
   const similarProductsPromise = getSimilarProducts(id);
   await minDelayPromise;
   const similarProducts = (((await similarProductsPromise) as
@@ -61,7 +66,7 @@ const ProductDetails = async ({ params: { id } }: Props) => {
       <div className="flex gap-10 sm:gap-16 xl:gap-28 xl:flex-row flex-col">
         <div className="product-image">
           <Image
-            src={product.image}
+            src={imageSrc}
             alt={product.title}
             width={580}
             height={400}

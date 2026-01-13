@@ -10,11 +10,16 @@ interface Props {
 }
 
 const ProductCard = ({ product }: Props) => {
+  const imageSrc =
+    typeof product?.image === "string" && product.image.trim().length > 0
+      ? product.image
+      : "/assets/images/trending.svg";
+
   return (
     <Link href={`/products/${product._id}`} className="product-card">
       <div className="product-card_img-container">
         <Image
-          src={product.image}
+          src={imageSrc}
           alt={product.title}
           width={200}
           height={200}
