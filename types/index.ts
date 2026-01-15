@@ -6,6 +6,17 @@ export type User = {
   email: string;
 };
 
+export type ProductAnalyticsStatus = "idle" | "pending" | "complete" | "failed";
+
+export type ProductAnalytics = {
+  status: ProductAnalyticsStatus;
+  requestedAt?: string;
+  completedAt?: string;
+  error?: string;
+  // n8n can return arbitrary JSON for charts/metrics/recommendations.
+  data?: any;
+};
+
 export type Product = {
   _id?: string;
   url: string;
@@ -24,6 +35,7 @@ export type Product = {
   reviewsCount: number;
   stars: number;
   isOutOfStock: Boolean;
+  analytics?: ProductAnalytics;
   users?: User[];
 };
 

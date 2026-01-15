@@ -21,6 +21,17 @@ const productSchema = new mongoose.Schema({
   category: { type: String },
   reviewsCount: { type: Number },
   isOutOfStock: { type: Boolean, default: false },
+  analytics: {
+    status: {
+      type: String,
+      enum: ["idle", "pending", "complete", "failed"],
+      default: "idle",
+    },
+    requestedAt: { type: Date },
+    completedAt: { type: Date },
+    error: { type: String },
+    data: { type: mongoose.Schema.Types.Mixed },
+  },
   users: [
     {email: { type: String, required: true}}
   ], default: [],

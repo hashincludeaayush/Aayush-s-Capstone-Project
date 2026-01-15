@@ -10,6 +10,7 @@ import { redirect } from "next/navigation";
 import { AnalyzePricesButton } from "@/components/AnalyzePrices";
 import { Button } from "@/components/ui/button";
 import { ShoppingBag } from "lucide-react";
+import ProductAnalytics from "@/components/ProductAnalytics";
 
 type Props = {
   params: { id: string };
@@ -230,6 +231,8 @@ const ProductDetails = async ({ params: { id } }: Props) => {
       </div>
 
       <div className="flex flex-col gap-16">
+        <ProductAnalytics productId={id} />
+
         <div className="flex flex-col gap-5">
           <h3 className="text-3xl text-secondary font-bold text-white-100">
             Product Description
