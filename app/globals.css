@@ -2,6 +2,83 @@
 @tailwind components;
 @tailwind utilities;
 
+.cloud-drift-a {
+  animation-name: cloud-drift-a;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-fill-mode: both;
+  will-change: transform, background-position;
+}
+
+.cloud-drift-b {
+  animation-name: cloud-drift-b;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-fill-mode: both;
+  will-change: transform, background-position;
+}
+
+.cloud-drift-c {
+  animation-name: cloud-drift-c;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-fill-mode: both;
+  will-change: transform, background-position;
+}
+
+@keyframes cloud-drift-a {
+  0% {
+    transform: translate3d(-10px, 2px, 0);
+    background-position: 15% 30%;
+  }
+  50% {
+    transform: translate3d(14px, -6px, 0);
+    background-position: 85% 55%;
+  }
+  100% {
+    transform: translate3d(-10px, 2px, 0);
+    background-position: 15% 30%;
+  }
+}
+
+@keyframes cloud-drift-b {
+  0% {
+    transform: translate3d(10px, -2px, 0);
+    background-position: 80% 25%;
+  }
+  50% {
+    transform: translate3d(-14px, 6px, 0);
+    background-position: 20% 70%;
+  }
+  100% {
+    transform: translate3d(10px, -2px, 0);
+    background-position: 80% 25%;
+  }
+}
+
+@keyframes cloud-drift-c {
+  0% {
+    transform: translate3d(-8px, -1px, 0);
+    background-position: 35% 20%;
+  }
+  50% {
+    transform: translate3d(12px, 8px, 0);
+    background-position: 70% 80%;
+  }
+  100% {
+    transform: translate3d(-8px, -1px, 0);
+    background-position: 35% 20%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cloud-drift-a,
+  .cloud-drift-b,
+  .cloud-drift-c {
+    animation: none !important;
+  }
+}
+
 * {
   margin: 0;
   padding: 0;
