@@ -48,7 +48,7 @@ const Home = async () => {
           {/* Keep this button unchanged */}
           <a
             className="trending-button"
-            href="https://app.powerbi.com/reportEmbed?reportId=a529fe72-a2ea-40a6-87b5-78b334dda36e&autoAuth=true&embeddedDemo=true"
+            href="https://app.powerbi.com/reportEmbed?reportId=a529fe72-a2ea-40a6-87b5-78b334dda36e&autoAuth=true"
           >
             All
           </a>
