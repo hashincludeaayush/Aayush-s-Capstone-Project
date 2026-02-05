@@ -197,11 +197,54 @@ export async function getSimilarProducts(productId: string) {
 
     if(!currentProduct) return null;
 
-    const similarProducts = await Product.find({
-      _id: { $ne: productId },
-    }).limit(3).lean();
+    const limit = 24;
 
-    return JSON.parse(JSON.stringify(similarProducts));
+    const escapeRegex = (value: string) =>
+      value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    const category =
+      typeof (currentProduct as any)?.category === "string"
+        ? String((currentProduct as any).category).trim()
+        : "";
+
+    const baseFilter: any = {
+      _id: { $ne: productId },
+    };
+
+    // Prefer products from the same category when possible.
+    const primaryFilter = category
+      ? {
+          ...baseFilter,
+          category: { $regex: escapeRegex(category), $options: "i" },
+        }
+      : baseFilter;
+
+    const primary = await Product.find(primaryFilter)
+      .limit(limit)
+      .lean();
+
+    if (primary.length >= limit) {
+      return JSON.parse(JSON.stringify(primary));
+    }
+
+    // Fallback: fill the remaining slots with any other products.
+    const remaining = Math.max(0, limit - primary.length);
+    const primaryIds = primary
+      .map((p: any) => p?._id)
+      .filter(Boolean);
+
+    const secondary = remaining
+      ? await Product.find({
+          ...baseFilter,
+          _id: { $ne: productId, $nin: primaryIds },
+        })
+          .limit(remaining)
+          .lean()
+      : [];
+
+    const combined = [...primary, ...secondary];
+
+    return JSON.parse(JSON.stringify(combined));
   } catch (error) {
     console.log(error);
   }

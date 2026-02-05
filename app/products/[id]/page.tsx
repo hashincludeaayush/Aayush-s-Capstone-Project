@@ -16,13 +16,21 @@ type Props = {
   params: { id: string };
 };
 
+const shuffleInPlace = <T,>(arr: T[]) => {
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+};
+
 const getMerchantNameFromUrl = (url: string) => {
   try {
     const parsed = new URL(url);
     const hostname = parsed.hostname.replace(/^www\./, "").toLowerCase();
 
     const parts = hostname.split(".").filter(Boolean);
-    const sld = parts.length >= 2 ? parts[parts.length - 2] : parts[0] ?? "";
+    const sld = parts.length >= 2 ? parts[parts.length - 2] : (parts[0] ?? "");
 
     const overrides: Record<string, string> = {
       amazon: "Amazon",
@@ -61,6 +69,8 @@ const ProductDetails = async ({ params: { id } }: Props) => {
   const similarProducts = (((await similarProductsPromise) as
     | Product[]
     | null) ?? []) satisfies Product[];
+
+  const shuffledSimilarProducts = shuffleInPlace([...similarProducts]);
 
   return (
     <div className="product-container">
@@ -175,28 +185,28 @@ const ProductDetails = async ({ params: { id } }: Props) => {
                 title="Current Price"
                 iconSrc="/assets/icons/price-tag.svg"
                 value={`${product.currency} ${formatNumber(
-                  product.currentPrice
+                  product.currentPrice,
                 )}`}
               />
               <PriceInfoCard
                 title="Average Price"
                 iconSrc="/assets/icons/chart.svg"
                 value={`${product.currency} ${formatNumber(
-                  product.averagePrice
+                  product.averagePrice,
                 )}`}
               />
               <PriceInfoCard
                 title="Highest Price"
                 iconSrc="/assets/icons/arrow-up.svg"
                 value={`${product.currency} ${formatNumber(
-                  product.highestPrice
+                  product.highestPrice,
                 )}`}
               />
               <PriceInfoCard
                 title="Lowest Price"
                 iconSrc="/assets/icons/arrow-down.svg"
                 value={`${product.currency} ${formatNumber(
-                  product.lowestPrice
+                  product.lowestPrice,
                 )}`}
               />
             </div>
@@ -299,16 +309,47 @@ const ProductDetails = async ({ params: { id } }: Props) => {
         </div>
       </div>
 
-      {similarProducts && similarProducts?.length > 0 && (
-        <div className="py-14 flex flex-col gap-2 w-full">
-          <p className="section-text">Similar Products</p>
+      {shuffledSimilarProducts.length > 0 && (
+        <section className="py-14 w-full">
+          <div className="rounded-3xl border border-white-100/10 bg-gradient-to-br from-primary-orange/10 via-neutral-black/55 to-primary-green/12 p-6 sm:p-7 shadow-xs overflow-hidden relative">
+            <div
+              className="pointer-events-none absolute inset-0 opacity-80"
+              style={{
+                background:
+                  "radial-gradient(circle at 14% 18%, rgba(251,146,60,0.18), transparent 55%), radial-gradient(circle at 86% 70%, rgba(34,197,94,0.14), transparent 55%), radial-gradient(circle at 55% 25%, rgba(129,140,248,0.12), transparent 60%)",
+              }}
+              aria-hidden="true"
+            />
 
-          <div className="flex flex-wrap gap-10 mt-7 w-full">
-            {similarProducts.map((product) => (
-              <ProductCard key={product._id} product={product} />
-            ))}
+            <div className="relative flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <p className="text-white-100 font-semibold text-xl">
+                  Similar Products
+                </p>
+                <p className="text-xs text-white-200 mt-1 max-w-[64ch]">
+                  Quick alternatives in the same category.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs">
+                <span className="inline-flex items-center rounded-full border border-white-100/10 bg-white-100/5 px-3 py-1 font-semibold text-white-100">
+                  {Math.min(6, shuffledSimilarProducts.length)} shown
+                </span>
+              </div>
+            </div>
+
+            <div className="relative mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 gap-4">
+              {shuffledSimilarProducts.slice(0, 6).map((p) => (
+                <div
+                  key={p._id}
+                  className="rounded-2xl bg-gradient-to-br from-white-100/10 via-white-100/5 to-transparent p-[1px]"
+                >
+                  <ProductCard product={p} />
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        </section>
       )}
     </div>
   );

@@ -27,7 +27,7 @@ const ProductCard = ({ product }: Props) => {
         />
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="product-card_body">
         <h3 className="product-title">{product.title}</h3>
 
         <div className="flex items-center justify-between gap-3">

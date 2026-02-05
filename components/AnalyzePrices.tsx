@@ -79,7 +79,7 @@ function startChatStatusSequence() {
     const el = ensureEl();
     if (!el) return;
     const textEl = el.querySelector(
-      ".jynx-chat-status__text"
+      ".jynx-chat-status__text",
     ) as HTMLElement | null;
     if (!textEl) return;
     const next = lines[Math.min(index, lines.length - 1)];
@@ -183,7 +183,7 @@ export const AnalyzePricesButton = ({ productName }: Props) => {
       const message = `Please analyze the prices for "${productName}". What are the price trends and is this a good time to buy?`;
 
       const chatInput = document.querySelector(
-        ".chat-input textarea"
+        ".chat-input textarea",
       ) as HTMLTextAreaElement;
 
       if (chatInput) {
@@ -194,7 +194,7 @@ export const AnalyzePricesButton = ({ productName }: Props) => {
 
         // Find the send button
         const sendButton = document.querySelector(
-          ".chat-input-send-button"
+          ".chat-input-send-button",
         ) as HTMLElement;
 
         if (sendButton) {
@@ -228,7 +228,7 @@ export const AnalyzePricesButton = ({ productName }: Props) => {
             "backdrop-blur-md px-5 font-semibold",
             "hover:bg-neutral-black/60",
             "focus-visible:ring-2 focus-visible:ring-white-100/30",
-            "disabled:opacity-60"
+            "disabled:opacity-60",
           )}
         >
           {isSending ? (
@@ -243,8 +243,8 @@ export const AnalyzePricesButton = ({ productName }: Props) => {
             {isSending
               ? "Analyzing…"
               : !isChatReady
-              ? "Preparing assistant…"
-              : "Analyze Prices"}
+                ? "Preparing assistant…"
+                : "Analyze prices with AI agent chat"}
           </span>
 
           <LineChart className="ml-2 h-4 w-4 text-white-100/80" />
