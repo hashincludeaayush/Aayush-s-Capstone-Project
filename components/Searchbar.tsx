@@ -352,6 +352,21 @@ const Searchbar = () => {
           ? error.message
           : "Couldn’t reach the workflow. Please try again.";
 
+      const isTimeout = /timeout|timed out|exceeded|ECONNABORTED/i.test(
+        description,
+      );
+
+      if (isTimeout) {
+        toast({
+          variant: "info",
+          title: "Taking longer than usual",
+          description:
+            "It seems it’s taking longer than usual to scrape this product. We’re still scraping in the background—feel free to browse the website in the meantime and check back for the product in the “Search tracked products” bar above.",
+          durationMs: 8000,
+        });
+        return;
+      }
+
       toast({
         variant: "error",
         title: "Scrape failed",
