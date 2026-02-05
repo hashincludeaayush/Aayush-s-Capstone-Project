@@ -19,9 +19,6 @@ export async function scrapeAndStoreProduct(productUrl: string) {
   try {
     connectToDB();
 
-    const sleep = (ms: number) =>
-      new Promise<void>((resolve) => setTimeout(resolve, ms));
-
     const webhook = await scrapeProduct(productUrl);
 
     if (!webhook.ok) {
@@ -38,7 +35,7 @@ export async function scrapeAndStoreProduct(productUrl: string) {
 
     if(!hasScrapedPayload) {
       // If n8n responds with no body (e.g. 204), we still treat it as success.
-      // Many workflows upsert into MongoDB themselves, so we poll briefly for the product.
+      // Many workflows upsert into MongoDB themselves; don't block the request waiting.
       const candidates = new Set<string>();
       const trimmed = productUrl.trim();
       if (trimmed) candidates.add(trimmed);
@@ -56,26 +53,62 @@ export async function scrapeAndStoreProduct(productUrl: string) {
 
       const urlList = Array.from(candidates).filter(Boolean);
 
-      for (let attempt = 0; attempt < 12; attempt += 1) {
-        const existing = await Product.findOne({ url: { $in: urlList } })
-          .select("_id")
-          .lean<{ _id?: any } | null>();
+      // Best-effort immediate lookup (in case the workflow already saved it).
+      const existing = await Product.findOne({ url: { $in: urlList } })
+        .select("_id")
+        .lean<{ _id?: any } | null>();
 
-        if (existing?._id) {
-          revalidatePath(`/products/${existing._id}`);
-          return {
-            status: "complete",
-            productId: existing._id.toString(),
-          } satisfies ScrapeAndStoreResult;
-        }
+      if (existing?._id) {
+        revalidatePath(`/products/${existing._id}`);
+        return {
+          status: "complete",
+          productId: existing._id.toString(),
+        } satisfies ScrapeAndStoreResult;
+      }
 
-        await sleep(1000);
+      // Create a placeholder product immediately so we can redirect users to the
+      // product page even when the workflow returns an empty response body.
+      const placeholder = await Product.findOneAndUpdate(
+        { url: trimmed },
+        {
+          $setOnInsert: {
+            url: trimmed,
+            currency: "₹",
+            image: "/assets/images/trending.svg",
+            title: "Generating analysis…",
+            currentPrice: 0,
+            originalPrice: 0,
+            priceHistory: [{ price: 0 }],
+            lowestPrice: 0,
+            highestPrice: 0,
+            averagePrice: 0,
+            discountRate: 0,
+            description: "",
+            category: "Other",
+            reviewsCount: 0,
+            isOutOfStock: false,
+            analytics: {
+              status: "pending",
+              requestedAt: new Date(),
+            },
+            users: [],
+          },
+        },
+        { upsert: true, new: true },
+      ).select("_id");
+
+      if (placeholder?._id) {
+        revalidatePath(`/products/${placeholder._id}`);
+        return {
+          status: "complete",
+          productId: placeholder._id.toString(),
+        } satisfies ScrapeAndStoreResult;
       }
 
       return {
         status: "queued",
         message:
-          "Workflow finished, but no product payload was returned. The product may still be saving—please refresh in a moment.",
+          "Scrape started. It can take a few minutes for the product page to be generated—please check again shortly.",
       } satisfies ScrapeAndStoreResult;
     }
 
