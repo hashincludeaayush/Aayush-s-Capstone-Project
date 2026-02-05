@@ -16,7 +16,7 @@ export async function scrapeProduct(url: string): Promise<ScrapeWebhookResult> {
       n8nEndpoint,
       { url },
       {
-        timeout: 120_000,
+        timeout: 300_000,
         // Don't throw on non-2xx so we can return a clear error.
         validateStatus: () => true,
       }
