@@ -40,13 +40,16 @@ export async function scrapeAndStoreProduct(productUrl: string) {
       const trimmed = productUrl.trim();
       if (trimmed) candidates.add(trimmed);
 
+      let primaryUrl = trimmed;
+
       try {
         const u = new URL(trimmed);
         u.hash = "";
         candidates.add(u.toString());
         u.search = "";
         candidates.add(u.toString());
-        candidates.add(u.toString().replace(/\/$/, ""));
+        primaryUrl = u.toString().replace(/\/$/, "");
+        candidates.add(primaryUrl);
       } catch {
         // ignore invalid URL parsing here; Searchbar validates on client.
       }
@@ -69,10 +72,10 @@ export async function scrapeAndStoreProduct(productUrl: string) {
       // Create a placeholder product immediately so we can redirect users to the
       // product page even when the workflow returns an empty response body.
       const placeholder = await Product.findOneAndUpdate(
-        { url: trimmed },
+        { url: primaryUrl },
         {
           $setOnInsert: {
-            url: trimmed,
+            url: primaryUrl,
             currency: "₹",
             image: "/assets/images/trending.svg",
             title: "Generating analysis…",
