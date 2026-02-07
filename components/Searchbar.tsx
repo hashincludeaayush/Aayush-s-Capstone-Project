@@ -55,6 +55,17 @@ const Searchbar = () => {
     | { state: "running"; url: string }
     | { state: "completed"; url: string; productId: string }
   >({ state: "idle" });
+  const [inlineNotice, setInlineNotice] = useState<null | {
+    variant: "success" | "error" | "info";
+    title: string;
+    description?: string;
+  }>(null);
+  const inlineNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const workflowResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const [isSmallScreen, setIsSmallScreen] = useState(false);
   const [loadingQuote, setLoadingQuote] = useState<{
     text: string;
@@ -149,6 +160,41 @@ const Searchbar = () => {
 
   const router = useRouter();
   const { toast } = useToast();
+
+  const INLINE_NOTICE_MS = 8000;
+
+  const showInlineNotice = (notice: {
+    variant: "success" | "error" | "info";
+    title: string;
+    description?: string;
+  }) => {
+    setInlineNotice(notice);
+
+    if (inlineNoticeTimerRef.current)
+      clearTimeout(inlineNoticeTimerRef.current);
+    inlineNoticeTimerRef.current = setTimeout(() => {
+      setInlineNotice(null);
+      inlineNoticeTimerRef.current = null;
+    }, INLINE_NOTICE_MS);
+  };
+
+  const scheduleWorkflowIdle = () => {
+    if (workflowResetTimerRef.current)
+      clearTimeout(workflowResetTimerRef.current);
+    workflowResetTimerRef.current = setTimeout(() => {
+      setWorkflowResult({ state: "idle" });
+      workflowResetTimerRef.current = null;
+    }, INLINE_NOTICE_MS);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (inlineNoticeTimerRef.current)
+        clearTimeout(inlineNoticeTimerRef.current);
+      if (workflowResetTimerRef.current)
+        clearTimeout(workflowResetTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isLoading) {
@@ -336,6 +382,11 @@ const Searchbar = () => {
           title: "Scrape complete",
           description: "Opening the product page…",
         });
+        showInlineNotice({
+          variant: "success",
+          title: "Scrape complete",
+          description: "Opening the product page…",
+        });
 
         setWorkflowResult({
           state: "completed",
@@ -347,6 +398,13 @@ const Searchbar = () => {
 
       if (result?.status === "queued") {
         toast({
+          variant: "success",
+          title: "Scrape started",
+          description:
+            result.message ||
+            "The workflow ran successfully. The product may appear in a moment.",
+        });
+        showInlineNotice({
           variant: "success",
           title: "Scrape started",
           description:
@@ -372,6 +430,11 @@ const Searchbar = () => {
               title: "Scrape complete",
               description: "Opening the product page…",
             });
+            showInlineNotice({
+              variant: "success",
+              title: "Scrape complete",
+              description: "Opening the product page…",
+            });
 
             setWorkflowResult({
               state: "completed",
@@ -391,8 +454,13 @@ const Searchbar = () => {
             "The workflow is still running. Please check again soon from the “Search tracked products” bar above.",
           durationMs: 8000,
         });
-
-        setWorkflowResult({ state: "idle" });
+        showInlineNotice({
+          variant: "info",
+          title: "Still processing",
+          description:
+            "The workflow is still running. Please check again soon from the “Search tracked products” bar above.",
+        });
+        scheduleWorkflowIdle();
         return;
       }
 
@@ -422,6 +490,13 @@ const Searchbar = () => {
             "It seems it’s taking longer than usual to scrape this product. We’re still scraping in the background—feel free to browse the website in the meantime and check back for the product in the “Search tracked products” bar above.",
           durationMs: 8000,
         });
+        showInlineNotice({
+          variant: "info",
+          title: "Taking longer than usual",
+          description:
+            "It seems it’s taking longer than usual to scrape this product. We’re still scraping in the background—feel free to browse the website in the meantime and check back for the product in the “Search tracked products” bar above.",
+        });
+        scheduleWorkflowIdle();
         return;
       }
 
@@ -430,6 +505,12 @@ const Searchbar = () => {
         title: "Scrape failed",
         description,
       });
+      showInlineNotice({
+        variant: "error",
+        title: "Scrape failed",
+        description,
+      });
+      scheduleWorkflowIdle();
     } finally {
       setIsLoading(false);
     }
@@ -498,6 +579,29 @@ const Searchbar = () => {
                   />
                 </div>
               </div>
+
+              {inlineNotice && (
+                <div
+                  className={`mt-4 rounded-lg border px-4 py-3 backdrop-blur-sm ${
+                    inlineNotice.variant === "success"
+                      ? "border-primary-green/25 bg-primary-green/10"
+                      : inlineNotice.variant === "error"
+                        ? "border-destructive/25 bg-destructive/10"
+                        : "border-primary-orange/25 bg-primary-orange/10"
+                  }`}
+                  role="status"
+                  aria-live="polite"
+                >
+                  <p className="text-white-100 text-sm font-semibold">
+                    {inlineNotice.title}
+                  </p>
+                  {inlineNotice.description ? (
+                    <p className="mt-1 text-white-200 text-sm">
+                      {inlineNotice.description}
+                    </p>
+                  ) : null}
+                </div>
+              )}
 
               <div className={`mt-4 rounded-lg px-4 py-3 ${quoteStyle.chip}`}>
                 <div className="flex items-center justify-between gap-3">

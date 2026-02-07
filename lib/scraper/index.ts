@@ -11,6 +11,42 @@ export type TriggerScrapeResult =
   | { ok: true; status?: number; queued: false; productId: string }
   | { ok: false; status?: number; error: string };
 
+function extractProductId(value: any): string {
+  const pick = (v: any) => {
+    if (!v) return "";
+    if (typeof v === "string") return v.trim();
+    return "";
+  };
+
+  if (typeof value === "string") {
+    const direct = pick(value);
+    if (direct && /^[a-f\d]{24}$/i.test(direct)) return direct;
+
+    try {
+      return extractProductId(JSON.parse(value));
+    } catch {
+      return "";
+    }
+  }
+
+  if (!value || typeof value !== "object") return "";
+
+  const direct =
+    pick((value as any).productId) ||
+    pick((value as any).productID) ||
+    pick((value as any).id);
+
+  if (direct) return direct;
+
+  // Common nesting patterns: { data: { productId } } or { result: { productId } }
+  const nested =
+    extractProductId((value as any).data) ||
+    extractProductId((value as any).result) ||
+    extractProductId((value as any).payload);
+
+  return nested;
+}
+
 export async function scrapeProduct(url: string): Promise<ScrapeWebhookResult> {
   if (!url) return { ok: false, error: "Missing URL" };
 
@@ -65,10 +101,7 @@ export async function triggerScrapeProduct(url: string): Promise<TriggerScrapeRe
 
     if (response.status >= 200 && response.status < 300) {
       const data: any = response.data;
-      const productId =
-        data && typeof data === "object"
-          ? String(data.productId || data.id || data.productID || "").trim()
-          : "";
+      const productId = extractProductId(data);
 
       if (productId) {
         return { ok: true, status: response.status, queued: false, productId };
