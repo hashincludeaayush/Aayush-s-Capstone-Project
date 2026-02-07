@@ -343,6 +343,39 @@ const Searchbar = () => {
             result.message ||
             "The workflow ran successfully. The product may appear in a moment.",
         });
+
+        const start = Date.now();
+        const maxWaitMs = 6 * 60 * 1000;
+        const intervalMs = 2500;
+
+        while (Date.now() - start < maxWaitMs) {
+          const lookup = await fetch(
+            `/api/products/lookup?url=${encodeURIComponent(searchPrompt)}`,
+            { method: "GET" },
+          ).catch(() => null);
+
+          const lookupResult = await lookup?.json().catch(() => null);
+
+          if (lookupResult?.found && lookupResult?.productId) {
+            toast({
+              variant: "success",
+              title: "Product ready",
+              description: "Opening the product page…",
+            });
+            router.push(`/products/${lookupResult.productId}`);
+            return;
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, intervalMs));
+        }
+
+        toast({
+          variant: "info",
+          title: "Still processing",
+          description:
+            "The workflow is still running. Please check again soon from the “Search tracked products” bar above.",
+          durationMs: 8000,
+        });
         return;
       }
 

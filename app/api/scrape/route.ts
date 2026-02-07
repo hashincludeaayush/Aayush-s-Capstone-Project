@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { scrapeAndStoreProduct } from "@/lib/actions";
+import { triggerScrapeProduct } from "@/lib/scraper";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
@@ -20,9 +20,20 @@ export async function POST(req: Request) {
       );
     }
 
-    const result = await scrapeAndStoreProduct(url);
+    const trigger = await triggerScrapeProduct(url);
 
-    return NextResponse.json(result ?? { status: "failed", message: "Failed." });
+    if (!trigger.ok) {
+      return NextResponse.json(
+        { status: "failed", message: trigger.error },
+        { status: 502 },
+      );
+    }
+
+    return NextResponse.json({
+      status: "queued",
+      message:
+        "Workflow started. We’ll redirect automatically once the product is ready.",
+    });
   } catch (error: any) {
     return NextResponse.json(
       {
