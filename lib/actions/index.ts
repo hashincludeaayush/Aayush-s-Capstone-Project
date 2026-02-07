@@ -19,7 +19,28 @@ export async function scrapeAndStoreProduct(productUrl: string) {
   try {
     connectToDB();
 
-    const webhook = await scrapeProduct(productUrl);
+    const candidates = new Set<string>();
+    const trimmed = productUrl.trim();
+    if (trimmed) candidates.add(trimmed);
+
+    let primaryUrl = trimmed;
+
+    try {
+      const u = new URL(trimmed);
+      u.hash = "";
+      candidates.add(u.toString());
+      u.search = "";
+      candidates.add(u.toString());
+      primaryUrl = u.toString().replace(/\/$/, "");
+      candidates.add(primaryUrl);
+    } catch {
+      // ignore invalid URL parsing here; Searchbar validates on client.
+    }
+
+    const urlList = Array.from(candidates).filter(Boolean);
+
+    // Wait for the workflow to finish and respond.
+    const webhook = await scrapeProduct(primaryUrl);
 
     if (!webhook.ok) {
       return { status: "failed", message: webhook.error } satisfies ScrapeAndStoreResult;
@@ -27,124 +48,75 @@ export async function scrapeAndStoreProduct(productUrl: string) {
 
     const scrapedProduct = webhook.data;
 
-    // If n8n returned product data, we can store/update immediately (old behavior).
     const hasScrapedPayload =
       scrapedProduct &&
       typeof scrapedProduct === "object" &&
       typeof (scrapedProduct as any).url === "string";
 
-    if(!hasScrapedPayload) {
-      // If n8n responds with no body (e.g. 204), we still treat it as success.
-      // Many workflows upsert into MongoDB themselves; don't block the request waiting.
-      const candidates = new Set<string>();
-      const trimmed = productUrl.trim();
-      if (trimmed) candidates.add(trimmed);
+    if (hasScrapedPayload) {
+      let product = scrapedProduct;
 
-      let primaryUrl = trimmed;
+      const existingProduct = await Product.findOne({
+        url: (scrapedProduct as any).url,
+      });
 
-      try {
-        const u = new URL(trimmed);
-        u.hash = "";
-        candidates.add(u.toString());
-        u.search = "";
-        candidates.add(u.toString());
-        primaryUrl = u.toString().replace(/\/$/, "");
-        candidates.add(primaryUrl);
-      } catch {
-        // ignore invalid URL parsing here; Searchbar validates on client.
+      if (existingProduct) {
+        const updatedPriceHistory: any = [
+          ...existingProduct.priceHistory,
+          { price: (scrapedProduct as any).currentPrice },
+        ];
+
+        product = {
+          ...scrapedProduct,
+          priceHistory: updatedPriceHistory,
+          lowestPrice: getLowestPrice(updatedPriceHistory),
+          highestPrice: getHighestPrice(updatedPriceHistory),
+          averagePrice: getAveragePrice(updatedPriceHistory),
+        };
       }
 
-      const urlList = Array.from(candidates).filter(Boolean);
-
-      // Best-effort immediate lookup (in case the workflow already saved it).
-      const existing = await Product.findOne({ url: { $in: urlList } })
-        .select("_id")
-        .lean<{ _id?: any } | null>();
-
-      if (existing?._id) {
-        revalidatePath(`/products/${existing._id}`);
-        return {
-          status: "complete",
-          productId: existing._id.toString(),
-        } satisfies ScrapeAndStoreResult;
-      }
-
-      // Create a placeholder product immediately so we can redirect users to the
-      // product page even when the workflow returns an empty response body.
-      const placeholder = await Product.findOneAndUpdate(
-        { url: primaryUrl },
-        {
-          $setOnInsert: {
-            url: primaryUrl,
-            currency: "₹",
-            image: "/assets/images/trending.svg",
-            title: "Generating analysis…",
-            currentPrice: 0,
-            originalPrice: 0,
-            priceHistory: [{ price: 0 }],
-            lowestPrice: 0,
-            highestPrice: 0,
-            averagePrice: 0,
-            discountRate: 0,
-            description: "",
-            category: "Other",
-            reviewsCount: 0,
-            isOutOfStock: false,
-            analytics: {
-              status: "pending",
-              requestedAt: new Date(),
-            },
-            users: [],
-          },
-        },
+      const newProduct = await Product.findOneAndUpdate(
+        { url: (scrapedProduct as any).url },
+        product,
         { upsert: true, new: true },
-      ).select("_id");
+      );
 
-      if (placeholder?._id) {
-        revalidatePath(`/products/${placeholder._id}`);
-        return {
-          status: "complete",
-          productId: placeholder._id.toString(),
-        } satisfies ScrapeAndStoreResult;
-      }
+      revalidatePath(`/products/${newProduct._id}`);
 
       return {
-        status: "queued",
-        message:
-          "Scrape started. It can take a few minutes for the product page to be generated—please check again shortly.",
+        status: "complete",
+        productId: newProduct._id.toString(),
       } satisfies ScrapeAndStoreResult;
     }
 
-    let product = scrapedProduct;
+    // Workflow finished but responded with an empty body.
+    // Poll briefly for the product that the workflow should have written to MongoDB.
+    const start = Date.now();
+    const maxWaitMs = 45_000;
+    const intervalMs = 2_500;
 
-    const existingProduct = await Product.findOne({ url: scrapedProduct.url });
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const found = await Product.findOne({ url: { $in: urlList } })
+        .select("_id")
+        .lean<{ _id?: any } | null>();
 
-    if(existingProduct) {
-      const updatedPriceHistory: any = [
-        ...existingProduct.priceHistory,
-        { price: scrapedProduct.currentPrice }
-      ]
-
-      product = {
-        ...scrapedProduct,
-        priceHistory: updatedPriceHistory,
-        lowestPrice: getLowestPrice(updatedPriceHistory),
-        highestPrice: getHighestPrice(updatedPriceHistory),
-        averagePrice: getAveragePrice(updatedPriceHistory),
+      if (found?._id) {
+        revalidatePath(`/products/${found._id}`);
+        return {
+          status: "complete",
+          productId: found._id.toString(),
+        } satisfies ScrapeAndStoreResult;
       }
+
+      if (Date.now() - start >= maxWaitMs) break;
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
     }
 
-    const newProduct = await Product.findOneAndUpdate(
-      { url: scrapedProduct.url },
-      product,
-      { upsert: true, new: true }
-    );
-
-    revalidatePath(`/products/${newProduct._id}`);
-
     return {
-      status: "complete",
-      productId: newProduct._id.toString(),
+      status: "queued",
+      message:
+        "The scrape finished, but the product record is still being saved. Please try again in a moment.",
     } satisfies ScrapeAndStoreResult;
   } catch (error: any) {
     return {

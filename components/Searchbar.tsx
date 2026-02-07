@@ -1,6 +1,5 @@
 "use client";
 
-import { scrapeAndStoreProduct } from "@/lib/actions";
 import {
   CSSProperties,
   FormEvent,
@@ -210,7 +209,7 @@ const Searchbar = () => {
 
   const goPrevVideo = () => {
     setActiveVideoIndex(
-      (prev) => (prev - 1 + WAIT_VIDEOS.length) % WAIT_VIDEOS.length
+      (prev) => (prev - 1 + WAIT_VIDEOS.length) % WAIT_VIDEOS.length,
     );
   };
 
@@ -315,8 +314,15 @@ const Searchbar = () => {
     try {
       setIsLoading(true);
 
-      // Scrape the product page
-      const result = await scrapeAndStoreProduct(searchPrompt);
+      const response = await fetch("/api/scrape", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url: searchPrompt }),
+      });
+
+      const result = await response.json().catch(() => null);
 
       if (result?.status === "complete" && result?.productId) {
         toast({
@@ -342,7 +348,9 @@ const Searchbar = () => {
 
       const message =
         (result as any)?.message ||
-        "Couldn’t reach the workflow. Please try again.";
+        (!response.ok
+          ? "Couldn’t start the scrape. Please try again."
+          : "Couldn’t reach the workflow. Please try again.");
       throw new Error(message);
     } catch (error) {
       console.log(error);
@@ -498,7 +506,7 @@ const Searchbar = () => {
                           onVolumeChange={() => {
                             if (idx === activeVideoIndex) {
                               setIsActiveMuted(
-                                Boolean(videoRefs.current[idx]?.muted)
+                                Boolean(videoRefs.current[idx]?.muted),
                               );
                             }
                           }}
