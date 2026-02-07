@@ -50,6 +50,11 @@ const isValidProductURL = (value: string) => {
 const Searchbar = () => {
   const [searchPrompt, setSearchPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [workflowResult, setWorkflowResult] = useState<
+    | { state: "idle" }
+    | { state: "running"; url: string }
+    | { state: "completed"; url: string; productId: string }
+  >({ state: "idle" });
   const [isSmallScreen, setIsSmallScreen] = useState(false);
   const [loadingQuote, setLoadingQuote] = useState<{
     text: string;
@@ -313,6 +318,7 @@ const Searchbar = () => {
 
     try {
       setIsLoading(true);
+      setWorkflowResult({ state: "running", url: searchPrompt });
 
       const response = await fetch("/api/scrape", {
         method: "POST",
@@ -331,7 +337,11 @@ const Searchbar = () => {
           description: "Opening the product page…",
         });
 
-        router.push(`/products/${result.productId}`);
+        setWorkflowResult({
+          state: "completed",
+          url: searchPrompt,
+          productId: String(result.productId),
+        });
         return;
       }
 
@@ -359,10 +369,15 @@ const Searchbar = () => {
           if (lookupResult?.found && lookupResult?.productId) {
             toast({
               variant: "success",
-              title: "Product ready",
+              title: "Scrape complete",
               description: "Opening the product page…",
             });
-            router.push(`/products/${lookupResult.productId}`);
+
+            setWorkflowResult({
+              state: "completed",
+              url: searchPrompt,
+              productId: String(lookupResult.productId),
+            });
             return;
           }
 
@@ -376,6 +391,8 @@ const Searchbar = () => {
             "The workflow is still running. Please check again soon from the “Search tracked products” bar above.",
           durationMs: 8000,
         });
+
+        setWorkflowResult({ state: "idle" });
         return;
       }
 
@@ -438,170 +455,239 @@ const Searchbar = () => {
         </Button>
       </form>
 
-      {isLoading && (
+      {workflowResult.state !== "idle" && (
         <div
           className="mt-6 w-full max-w-[1100px] rounded-xl border border-white-100/15 bg-neutral-black/50 backdrop-blur-md px-7 py-7 shadow-xs"
           role="status"
           aria-live="polite"
-          aria-busy="true"
+          aria-busy={workflowResult.state === "running"}
         >
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div
-                className="h-6 w-6 rounded-full border-2 border-white-100/25 border-t-primary-orange animate-spin"
-                aria-hidden="true"
-              />
-              <div className="flex flex-col">
-                <p className="text-white-100 text-sm font-semibold">
-                  Running workflow…
-                </p>
-                <p className="text-white-200 text-sm">
-                  Scraping the page and calculating price history.
+          {workflowResult.state === "running" ? (
+            <>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="h-6 w-6 rounded-full border-2 border-white-100/25 border-t-primary-orange animate-spin"
+                    aria-hidden="true"
+                  />
+                  <div className="flex flex-col">
+                    <p className="text-white-100 text-sm font-semibold">
+                      Running workflow…
+                    </p>
+                    <p className="text-white-200 text-sm">
+                      Scraping the page and calculating price history.
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  className="flex items-center gap-1 pt-1"
+                  aria-hidden="true"
+                >
+                  <span
+                    className="h-2 w-2 rounded-full bg-primary-orange animate-bounce"
+                    style={{ animationDelay: "0ms" }}
+                  />
+                  <span
+                    className="h-2 w-2 rounded-full bg-primary-orange animate-bounce"
+                    style={{ animationDelay: "150ms" }}
+                  />
+                  <span
+                    className="h-2 w-2 rounded-full bg-primary-orange animate-bounce"
+                    style={{ animationDelay: "300ms" }}
+                  />
+                </div>
+              </div>
+
+              <div className={`mt-4 rounded-lg px-4 py-3 ${quoteStyle.chip}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-white-100 text-xs font-semibold tracking-wide">
+                    {quoteStyle.label}
+                  </p>
+                </div>
+                <p className="mt-1 text-white-100 text-sm">
+                  {loadingQuote.text}
                 </p>
               </div>
-            </div>
 
-            <div className="flex items-center gap-1 pt-1" aria-hidden="true">
-              <span
-                className="h-2 w-2 rounded-full bg-primary-orange animate-bounce"
-                style={{ animationDelay: "0ms" }}
-              />
-              <span
-                className="h-2 w-2 rounded-full bg-primary-orange animate-bounce"
-                style={{ animationDelay: "150ms" }}
-              />
-              <span
-                className="h-2 w-2 rounded-full bg-primary-orange animate-bounce"
-                style={{ animationDelay: "300ms" }}
-              />
-            </div>
-          </div>
+              <div className="mt-5 rounded-xl border border-white-100/15 bg-gradient-to-r from-primary-orange/10 via-chart-1/10 to-primary-green/10 px-6 py-6 shadow-xs">
+                <p className="text-white-100 text-base font-bold tracking-tight">
+                  While You Wait, Watch Our Original Shoto Cloud Videos Created
+                  By Aayush Singh
+                </p>
 
-          <div className={`mt-4 rounded-lg px-4 py-3 ${quoteStyle.chip}`}>
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-white-100 text-xs font-semibold tracking-wide">
-                {quoteStyle.label}
-              </p>
-            </div>
-            <p className="mt-1 text-white-100 text-sm">{loadingQuote.text}</p>
-          </div>
-
-          <div className="mt-5 rounded-xl border border-white-100/15 bg-gradient-to-r from-primary-orange/10 via-chart-1/10 to-primary-green/10 px-6 py-6 shadow-xs">
-            <p className="text-white-100 text-base font-bold tracking-tight">
-              While You Wait, Watch Our Original Shoto Cloud Videos Created By
-              Aayush Singh
-            </p>
-
-            <div className="mt-3">
-              <div
-                className="relative w-full h-[320px] sm:h-[460px] overflow-hidden sm:overflow-visible rounded-lg"
-                style={{ perspective: "1400px" }}
-              >
-                {WAIT_VIDEOS.map((video, idx) => {
-                  const isActive = idx === activeVideoIndex;
-                  return (
-                    <div
-                      key={video.src}
-                      onClick={() => setActiveVideoIndex(idx)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          setActiveVideoIndex(idx);
-                        }
-                      }}
-                      role="button"
-                      tabIndex={0}
-                      className="absolute left-1/2 top-1/2 w-[94%] sm:w-[86%] max-w-[760px] cursor-pointer text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                      style={getCardStyle(idx)}
-                      aria-label={`Show video: ${video.title}`}
-                    >
-                      <div className="transform-gpu rounded-xl border border-white-100/15 bg-neutral-black/40 backdrop-blur-md px-5 py-4 shadow-xs">
-                        <p className="text-white-100 text-base font-semibold tracking-tight">
-                          {video.title}
-                        </p>
-                        <video
-                          ref={(el) => {
-                            videoRefs.current[idx] = el;
-                          }}
-                          className="mt-2 w-full rounded-lg"
-                          controls
-                          preload="metadata"
-                          src={video.src}
-                          playsInline
-                          onPlay={() => {
-                            if (idx === activeVideoIndex)
-                              setIsActivePlaying(true);
-                          }}
-                          onPause={() => {
-                            if (idx === activeVideoIndex)
-                              setIsActivePlaying(false);
-                          }}
-                          onVolumeChange={() => {
-                            if (idx === activeVideoIndex) {
-                              setIsActiveMuted(
-                                Boolean(videoRefs.current[idx]?.muted),
-                              );
+                <div className="mt-3">
+                  <div
+                    className="relative w-full h-[320px] sm:h-[460px] overflow-hidden sm:overflow-visible rounded-lg"
+                    style={{ perspective: "1400px" }}
+                  >
+                    {WAIT_VIDEOS.map((video, idx) => {
+                      const isActive = idx === activeVideoIndex;
+                      return (
+                        <div
+                          key={video.src}
+                          onClick={() => setActiveVideoIndex(idx)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              setActiveVideoIndex(idx);
                             }
                           }}
-                        />
-                        {!isActive && (
-                          <p className="mt-2 text-xs text-white-200">
-                            Click to focus
-                          </p>
-                        )}
-                      </div>
+                          role="button"
+                          tabIndex={0}
+                          className="absolute left-1/2 top-1/2 w-[94%] sm:w-[86%] max-w-[760px] cursor-pointer text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          style={getCardStyle(idx)}
+                          aria-label={`Show video: ${video.title}`}
+                        >
+                          <div className="transform-gpu rounded-xl border border-white-100/15 bg-neutral-black/40 backdrop-blur-md px-5 py-4 shadow-xs">
+                            <p className="text-white-100 text-base font-semibold tracking-tight">
+                              {video.title}
+                            </p>
+                            <video
+                              ref={(el) => {
+                                videoRefs.current[idx] = el;
+                              }}
+                              className="mt-2 w-full rounded-lg"
+                              controls
+                              preload="metadata"
+                              src={video.src}
+                              playsInline
+                              onPlay={() => {
+                                if (idx === activeVideoIndex)
+                                  setIsActivePlaying(true);
+                              }}
+                              onPause={() => {
+                                if (idx === activeVideoIndex)
+                                  setIsActivePlaying(false);
+                              }}
+                              onVolumeChange={() => {
+                                if (idx === activeVideoIndex) {
+                                  setIsActiveMuted(
+                                    Boolean(videoRefs.current[idx]?.muted),
+                                  );
+                                }
+                              }}
+                            />
+                            {!isActive && (
+                              <p className="mt-2 text-xs text-white-200">
+                                Click to focus
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="relative z-10 mt-4 flex flex-wrap items-center justify-between gap-3">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={goPrevVideo}
+                    >
+                      Prev
+                    </Button>
+
+                    <div className="flex items-center gap-3">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={togglePlayPause}
+                      >
+                        {isActivePlaying ? "Pause" : "Play"}
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={toggleMute}
+                      >
+                        {isActiveMuted ? "Unmute" : "Mute"}
+                      </Button>
                     </div>
-                  );
-                })}
+
+                    <div className="flex items-center gap-3">
+                      <p className="text-xs text-white-200">
+                        {activeVideoIndex + 1} / {WAIT_VIDEOS.length}
+                      </p>
+
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={goNextVideo}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="relative">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="h-6 w-6 rounded-full border-2 border-primary-green/35 bg-primary-green/10"
+                    aria-hidden="true"
+                  />
+                  <div className="flex flex-col">
+                    <p className="text-white-100 text-sm font-semibold">
+                      Workflow completed
+                    </p>
+                    <p className="text-white-200 text-sm">
+                      Your product page is ready.
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="relative z-10 mt-4 flex flex-wrap items-center justify-between gap-3">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={goPrevVideo}
+              <div className="mt-5 flex items-center justify-center">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    if (workflowResult.state !== "completed") return;
+                    router.push(`/products/${workflowResult.productId}`);
+                    setWorkflowResult({ state: "idle" });
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter" && e.key !== " ") return;
+                    e.preventDefault();
+                    if (workflowResult.state !== "completed") return;
+                    router.push(`/products/${workflowResult.productId}`);
+                    setWorkflowResult({ state: "idle" });
+                  }}
+                  className="w-full max-w-[520px] cursor-pointer rounded-xl border border-white-100/20 bg-neutral-black/40 backdrop-blur-md px-5 py-4 shadow-xs outline-none transition-transform hover:-translate-y-0.5 focus-visible:ring-1 focus-visible:ring-ring"
                 >
-                  Prev
-                </Button>
-
-                <div className="flex items-center gap-3">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={togglePlayPause}
-                  >
-                    {isActivePlaying ? "Pause" : "Play"}
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={toggleMute}
-                  >
-                    {isActiveMuted ? "Unmute" : "Mute"}
-                  </Button>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <p className="text-xs text-white-200">
-                    {activeVideoIndex + 1} / {WAIT_VIDEOS.length}
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex flex-col">
+                      <p className="text-white-100 text-sm font-semibold">
+                        Open product page
+                      </p>
+                      <p className="text-white-200 text-xs mt-1 line-clamp-1">
+                        {workflowResult.url}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-primary-orange animate-ping" />
+                      <span className="text-white-100 text-sm font-semibold">
+                        View
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-3 h-[1px] w-full bg-white-100/10" />
+                  <p className="mt-3 text-white-200 text-sm animate-pulse">
+                    Click this card to continue →
                   </p>
-
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={goNextVideo}
-                  >
-                    Next
-                  </Button>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>

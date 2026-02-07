@@ -7,7 +7,8 @@ export type ScrapeWebhookResult =
   | { ok: false; status?: number; error: string };
 
 export type TriggerScrapeResult =
-  | { ok: true; status?: number; queued: true }
+  | { ok: true; status?: number; queued: true; productId?: string }
+  | { ok: true; status?: number; queued: false; productId: string }
   | { ok: false; status?: number; error: string };
 
 export async function scrapeProduct(url: string): Promise<ScrapeWebhookResult> {
@@ -63,6 +64,16 @@ export async function triggerScrapeProduct(url: string): Promise<TriggerScrapeRe
     );
 
     if (response.status >= 200 && response.status < 300) {
+      const data: any = response.data;
+      const productId =
+        data && typeof data === "object"
+          ? String(data.productId || data.id || data.productID || "").trim()
+          : "";
+
+      if (productId) {
+        return { ok: true, status: response.status, queued: false, productId };
+      }
+
       return { ok: true, status: response.status, queued: true };
     }
 

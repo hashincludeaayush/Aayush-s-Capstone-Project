@@ -29,6 +29,10 @@ export async function POST(req: Request) {
       );
     }
 
+    if (trigger.queued === false && trigger.productId) {
+      return NextResponse.json({ status: "complete", productId: trigger.productId });
+    }
+
     return NextResponse.json({
       status: "queued",
       message:
